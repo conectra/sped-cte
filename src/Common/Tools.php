@@ -12,7 +12,7 @@ namespace NFePHP\CTe\Common;
  * @license   https://opensource.org/licenses/MIT MIT
  * @license   http://www.gnu.org/licenses/gpl.txt GPLv3+
  * @author    Roberto L. Machado <linux.rlm at gmail dot com>
- * @link      http://github.com/nfephp-org/sped-nfe for the canonical source repository
+ * @link      http://github.com/nfephp-org/sped-c for the canonical source repository
  */
 
 use DOMDocument;
@@ -168,6 +168,10 @@ class Tools
     protected $availableVersions = [
         '3.00' => 'PL_CTe_300a'
     ];
+    /**
+     * @var string
+     */
+    protected $timezone;
 
     /**
      * Constructor
@@ -189,7 +193,23 @@ class Tools
         $this->setEnvironmentTimeZone($this->config->siglaUF);
         $this->certificate = $certificate;
         $this->setEnvironment($this->config->tpAmb);
+        $this->setEnvironmentHttpVersion($this->config->siglaUF);
         $this->contingency = new Contingency();
+    }
+
+    /**
+     * set version in http
+     *
+     * @param string $sigla Sigla da uf
+     * @return void
+     */
+    private function setEnvironmentHttpVersion($sigla)
+    {
+        if (in_array($sigla, ['SP'])) {
+            $soap = new SoapCurl();
+            $soap->httpVersion('1.1');
+            $this->loadSoapClass($soap);
+        }
     }
 
     /**
@@ -199,7 +219,7 @@ class Tools
      */
     public function setEnvironmentTimeZone($acronym)
     {
-        date_default_timezone_set(TimeZoneByUF::get($acronym));
+        $this->timezone = TimeZoneByUF::get($acronym);
     }
 
     /**
@@ -459,7 +479,7 @@ class Tools
             if (array_search($type, $permit[$mod]) === false) {
                 throw new RuntimeException(
                     "Esse modo de contingência [$type] não é aceito "
-                        . "para o modelo [$mod]"
+                    . "para o modelo [$mod]"
                 );
             }
         }
@@ -510,10 +530,7 @@ class Tools
         $sigla = $uf;
         if (!$ignoreContingency) {
             $contType = $this->contingency->type;
-            if (
-                !empty($contType)
-                && ($contType == 'SVRS' || $contType == 'SVSP')
-            ) {
+            if (!empty($contType) && ($contType == 'SVRS' || $contType == 'SVSP')) {
                 $sigla = $contType;
             }
         }
@@ -521,15 +538,15 @@ class Tools
         if ($stdServ === false) {
             throw new \RuntimeException(
                 "Nenhum serviço foi localizado para esta unidade "
-                    . "da federação [$sigla], com o modelo [$this->modelo]."
+                . "da federação [$sigla], com o modelo [$this->modelo]."
             );
         }
         if (empty($stdServ->$service->url)) {
             throw new \RuntimeException(
                 "Este serviço [$service] não está disponivel para esta "
-                    . "unidade da federação [$uf] ou para este modelo de Nota ["
-                    . $this->modelo
-                    . "]."
+                . "unidade da federação [$uf] ou para este modelo de Nota ["
+                . $this->modelo
+                . "]."
             );
         }
         //recuperação do cUF
@@ -580,7 +597,7 @@ class Tools
     protected function sendRequest($request, array $parameters = [])
     {
         $this->checkSoap();
-        return (string) $this->soap->send(
+        return (string)$this->soap->send(
             $this->urlService,
             $this->urlMethod,
             $this->urlAction,

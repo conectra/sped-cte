@@ -79,7 +79,7 @@ class Tools extends ToolsCommon
         $body = "<cteDadosMsg xmlns=\"$this->urlNamespace\">$request</cteDadosMsg>";
         $method = $this->urlMethod;
         if ($compactar) {
-            $gzdata = base64_encode(gzencode($cons, 9, FORCE_GZIP));
+            $gzdata = base64_encode(gzencode($request, 9, FORCE_GZIP));
             $body = "<cteDadosMsgZip xmlns=\"$this->urlNamespace\">$gzdata</cteDadosMsgZip>";
             $method = $this->urlMethod."Zip";
             $parameters = ['cteDadosMsgZip' => $gzdata];
@@ -88,11 +88,11 @@ class Tools extends ToolsCommon
         $this->lastResponse = $this->sendRequest($body, $parameters);
         return $this->lastResponse;
     }
-    
+
     /**
      * Request authorization to issue CTe OS with one document only
-     * @param type $xml
-     * @return type
+     * @param string $xml
+     * @return string
      */
     public function sefazEnviaCTeOS($xml)
     {
@@ -376,7 +376,11 @@ class Tools extends ToolsCommon
         $consulta = "<distDFeInt xmlns=\"$this->urlPortal\" versao=\"$this->urlVersion\">"
             . "<tpAmb>".$this->tpAmb."</tpAmb>"
             . "<cUFAutor>$cUF</cUFAutor>"
-            . "<CNPJ>".$this->config->cnpj."</CNPJ>$tagNSU</distDFeInt>";
+            . ((strlen($this->config->cnpj)==14) ?
+                "<CNPJ>".$this->config->cnpj."</CNPJ>" :
+                "<CPF>".$this->config->cnpj."</CPF>"
+              )
+            . $tagNSU."</distDFeInt>";
         //valida o xml da requisição
         $this->isValid($this->urlVersion, $consulta, 'distDFeInt');
         $this->lastRequest = $consulta;
@@ -659,7 +663,7 @@ class Tools extends ToolsCommon
         $aliasEvento = $ev->alias;
         $descEvento = $ev->desc;
         $cnpj = $this->config->cnpj;
-        $dt = new \DateTime();
+        $dt = new \DateTime('now', new \DateTimeZone($this->timezone));
         $dhEvento = $dt->format('Y-m-d\TH:i:sP');
         $sSeqEvento = str_pad($nSeqEvento, 2, "0", STR_PAD_LEFT);
         $eventId = "ID".$tpEvento.$chave.$sSeqEvento;
@@ -708,7 +712,7 @@ class Tools extends ToolsCommon
     public function sefazDownload($chave)
     {
         //carrega serviço
-        $servico = 'CteDistribuicaoDFe';
+        $servico = 'CTeDistribuicaoDFe';
         $this->checkContingencyForWebServices($servico);
         $this->servico(
             $servico,
@@ -716,13 +720,13 @@ class Tools extends ToolsCommon
             $this->tpAmb,
             true
         );
-        $cUF = UFList::getCodeByUF($this->config->siglaUF);
-        $tagChave = "<consChNFe><chNFe>$chave</chNFe></consChNFe>";
         //monta a consulta
-        $consulta = "<distDFeInt xmlns=\"$this->urlPortal\" versao=\"$this->urlVersion\">"
-            . "<tpAmb>".$this->tpAmb."</tpAmb>"
-            . "<cUFAutor>$cUF</cUFAutor>"
-            . "<CNPJ>".$this->config->cnpj."</CNPJ>$tagChave</distDFeInt>";
+        $consulta = "<consChNFe><chNFe>$chave</chNFe></consChNFe>"
+            . ((strlen($this->config->cnpj)==14) ?
+                "<CNPJ>".$this->config->cnpj."</CNPJ>" :
+                "<CPF>".$this->config->cnpj."</CPF>"
+              )
+            ."</distDFeInt>";
         //valida o xml da requisição
         $this->isValid($this->urlVersion, $consulta, 'distDFeInt');
         $this->lastRequest = $consulta;
@@ -867,7 +871,7 @@ class Tools extends ToolsCommon
     ) {
         $uf = $this->validKeyByUF($chave);
         $tpEvento = 110180;
-        
+
         /* relaciona as chaves das NFes */
         $infEntrega = '';
         foreach ($aNFes as $NFe) {

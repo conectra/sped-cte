@@ -4,7 +4,7 @@ namespace NFePHP\CTe\Common;
 
 /**
  * Class for identification and convertion of eletronic documents in xml
- * for documents used in sped-nfe, sped-esocial, sped-cte, sped-mdfe, etc.
+ * for documents used in sped-cte, sped-esocial, sped-cte, sped-mdfe, etc.
  *
  * @category  NFePHP
  * @package   NFePHP\Common\Standardize
@@ -13,13 +13,11 @@ namespace NFePHP\CTe\Common;
  * @license   https://opensource.org/licenses/MIT MIT
  * @license   http://www.gnu.org/licenses/gpl.txt GPLv3+
  * @author    Roberto L. Machado <linux.rlm at gmail dot com>
- * @link      http://github.com/nfephp-org/sped-nfe for the canonical source repository
+ * @link      http://github.com/nfephp-org/sped-cte for the canonical source repository
  */
 
 use NFePHP\Common\Validator;
 use NFePHP\CTe\Exception\DocumentsException;
-use Symfony\Component\Yaml\Yaml;
-use DOMDocument;
 use stdClass;
 
 class Standardize
@@ -42,21 +40,26 @@ class Standardize
     public $rootTagList = [
         'enviCTe',
         'retEnviCte',
+        'retCTeOS',
         'retConsReciCTe',
         'consSitCTe',
         'retConsSitCTe',
-        'eventoCTe',
+        'procEventoCTe',
         'retEventoCTe',
         'cteRecepcaoOSResult',
-        'evCancCTe',
-        'inutCTe',
         'retInutCTe',
+        'inutCTe',
         'procInutCTe',
+        'retConsStatServCte',
+        'cteDistDFeInteresseResponse',
+        'cteProc',
         'CTe',
         'CTeOS',
-        'retConsStatServCte'
+        'eventoCTe',
+        'evCancCTe',
+        'protCTe'
     ];
-    
+
     /**
      * Constructor
      * @param string $xml
@@ -65,7 +68,7 @@ class Standardize
     {
         $this->toStd($xml);
     }
-    
+
     /**
      * Identify node and extract from XML for convertion type
      * @param string $xml
@@ -91,10 +94,10 @@ class Standardize
                 return $key;
             }
         }
-        //documento does not belong to the SPED-NFe project
+        //documento does not belong to the SPED-CTe project
         throw DocumentsException::wrongDocument(7);
     }
-    
+
     /**
      * Returns extract node from XML
      * @return string
@@ -103,7 +106,7 @@ class Standardize
     {
         return $this->node;
     }
-    
+
     /**
      * Returns stdClass converted from xml
      * @param string $xml
@@ -114,7 +117,7 @@ class Standardize
         if (!empty($xml)) {
             $this->key = $this->whichIs($xml);
         }
-        
+
         $sxml = simplexml_load_string($this->node);
         $this->json = str_replace(
             '@attributes',
@@ -123,7 +126,7 @@ class Standardize
         );
         return json_decode($this->json);
     }
-    
+
     /**
      * Retruns JSON string form XML
      * @param string $xml
@@ -136,7 +139,7 @@ class Standardize
         }
         return $this->json;
     }
-    
+
     /**
      * Returns array from XML
      * @param string $xml
@@ -148,19 +151,5 @@ class Standardize
             $this->toStd($xml);
         }
         return json_decode($this->json, true);
-    }
-    
-    /**
-     * Returns YAML from XML
-     * @param string $xml
-     * @return string
-     */
-    public function toYaml($xml = null)
-    {
-        if (!empty($xml)) {
-            $this->toStd($xml);
-        }
-        $array = $this->toArray();
-        return Yaml::dump($array, 6, 4);
     }
 }
